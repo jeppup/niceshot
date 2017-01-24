@@ -36,10 +36,6 @@ public class GameView extends SurfaceView implements Runnable {
             update();
             render();
 
-            try {
-                mGameThread.sleep(10);
-            }catch (InterruptedException ex){}
-
         }
     }
 
@@ -53,7 +49,6 @@ public class GameView extends SurfaceView implements Runnable {
     }
 
     public void resume(){
-        Log.i("GW", "Reached resume!");
         mIsRunning = true;
         mGameThread = new Thread(this);
         mGameThread.start();
