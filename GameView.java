@@ -4,13 +4,37 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.icu.text.DateFormat;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import java.util.ArrayList;
+import java.util.Random;
+
 /**
  * Created by Jesper on 2017-01-23.
+ *Game art source: http://opengameart.org/content/space-ships-side-scroller
+ * TO DO:
+ * Stars
+ *      Update to scroll
+ *      needs to match player velocity
+ *      need recycling
+ *
+ * Enemy
+ *      render() / update()
+ *      getHitBox()
+ *
+ * update()
+ *      checkCollissions()
+ *      end game / restart
+ *
+ * Jukebox
+ *      loading and playing sound effects
+ *
+ *  Highscores / previous results
+ *        saving and lodaing persistent data
  */
 
 public class GameView extends SurfaceView implements Runnable {
@@ -20,6 +44,12 @@ public class GameView extends SurfaceView implements Runnable {
     private SurfaceHolder mHolder;
     private Canvas mCanvas;
     private Player mPlayer;
+    private static final String TAG = "NICESHOT";
+    private final int DELAY = 1000/60;
+    private final int STAGE_HEIGHT = 720;
+    private final int STAGE_WIDTH;
+    private final int STAR_COUNT = 40;
+    private final ArrayList<GameObject> mStars = new ArrayList<GameObject>();
 
     public GameView(final Context context) {
         super(context);
@@ -27,6 +57,21 @@ public class GameView extends SurfaceView implements Runnable {
         mPlayer = new Player(context);
         mPaint = new Paint();
         mHolder = getHolder();
+
+        double targetHeight = (double)STAGE_HEIGHT;
+        DisplayMetrics dm = context.getResources().getDisplayMetrics();
+        double scaleRatio = targetHeight / dm.heightPixels;
+        int newWidth = (int) (dm.widthPixels * scaleRatio);
+        STAGE_WIDTH = (int)(dm.widthPixels * scaleRatio);
+        mHolder.setFixedSize(STAGE_WIDTH, STAGE_HEIGHT);
+
+        Random generator = new Random();
+        for(int i = 0; i < STAR_COUNT; i++)
+        {
+            int x = generator.nextInt(STAGE_WIDTH);
+            int y = generator.nextInt(STAGE_HEIGHT);
+            mStars.add(new GameObject(x, y));
+        }
     }
 
     @Override
@@ -35,8 +80,30 @@ public class GameView extends SurfaceView implements Runnable {
             //input
             update();
             render();
-
+            limitFps();
         }
+    }
+
+    private void limitFps(){
+        try {
+            mGameThread.sleep(DELAY);
+        }catch (InterruptedException ex){
+            Log.d(TAG, "Failed to sleep somehow");
+        }
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        switch(event.getAction() & MotionEvent.ACTION_MASK){
+            case MotionEvent.ACTION_UP:
+                mPlayer.stopBoost();
+                break;
+            case MotionEvent.ACTION_DOWN:
+                mPlayer.startBoost();
+                break;
+        }
+
+        return true;
     }
 
     public void pause() {
@@ -55,8 +122,16 @@ public class GameView extends SurfaceView implements Runnable {
     }
 
     private void update(){
+        for(GameObject star : mStars){
+            star.setSpeed(-mPlayer.getSpeed());
+            star.update();
+            worldWrap(star);
+        }
+
         mPlayer.Update();
+        worldWrap(mPlayer);
     }
+
     private void render(){
         if(!mHolder.getSurface().isValid()){
             return;
@@ -67,6 +142,16 @@ public class GameView extends SurfaceView implements Runnable {
             return;
         }
         mCanvas.drawColor(Color.BLACK);
+
+        //Draw stars
+        mPaint.setColor(Color.YELLOW);
+        GameObject star;
+        for(int i = 0; i < STAR_COUNT; i++){
+            star = mStars.get(i);
+            mCanvas.drawPoint(star.getX(), star.getY(), mPaint);
+        }
+
+        //Draw bitmap to screen
         mCanvas.drawBitmap(mPlayer.getBitmap(), mPlayer.getX(), mPlayer.getY(), mPaint);
         mHolder.unlockCanvasAndPost(mCanvas);
 
@@ -79,4 +164,44 @@ public class GameView extends SurfaceView implements Runnable {
         //render
     //pause and resume
     //constructor
+
+    private void worldWrap(GameObject go){
+        final int maxX = STAGE_WIDTH - go.getWidth();
+        final int maxY = STAGE_HEIGHT - go.getHeight();
+        final int minX = -go.getWidth();
+        final int minY = -go.getHeight();
+
+
+        if(go.getX() < minX){
+            go.setX(maxX);
+        }else if(go.getX() > maxX){
+            go.setX(minX);
+        }
+
+        if(go.getY() < minY){
+            go.setY(maxY);
+        }else if(go.getY() > maxY){
+            go.setY(minY);
+        }
+    }
+
+    private static String getDensityName(DisplayMetrics dm) {
+        float density = dm.density;
+        if (density >= 4.0) {
+            return "xxxhigh density";
+        }
+        if (density >= 3.0) {
+            return "xxhigh density";
+        }
+        if (density >= 2.0) {
+            return "xhigh density";
+        }
+        if (density >= 1.5) {
+            return "high density";
+        }
+        if (density >= 1.0) {
+            return "medium density";
+        }
+        return "low density";
+    }
 }
