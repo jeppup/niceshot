@@ -49,7 +49,9 @@ public class GameView extends SurfaceView implements Runnable {
     private final int STAGE_HEIGHT = 720;
     private final int STAGE_WIDTH;
     private final int STAR_COUNT = 40;
+    private final int ENEMY_COUNT  = 3;
     private final ArrayList<GameObject> mStars = new ArrayList<GameObject>();
+    private final ArrayList<Enemy> mEnemis = new ArrayList<Enemy>();
 
     public GameView(final Context context) {
         super(context);
@@ -71,6 +73,12 @@ public class GameView extends SurfaceView implements Runnable {
             int x = generator.nextInt(STAGE_WIDTH);
             int y = generator.nextInt(STAGE_HEIGHT);
             mStars.add(new GameObject(x, y));
+        }
+        for(int i = 0; i < ENEMY_COUNT; i++)
+        {
+            int x = STAGE_WIDTH + generator.nextInt(100);
+            int y = generator.nextInt(STAGE_HEIGHT);
+            mEnemis.add(new Enemy(context, x, y));
         }
     }
 
@@ -111,7 +119,7 @@ public class GameView extends SurfaceView implements Runnable {
         try{
             mGameThread.join();
         }catch (InterruptedException ex){
-
+            Log.d(TAG, Log.getStackTraceString(ex.getCause()));
         }
     }
 
@@ -122,14 +130,29 @@ public class GameView extends SurfaceView implements Runnable {
     }
 
     private void update(){
+        mPlayer.Update();
+        worldWrap(mPlayer);
+
         for(GameObject star : mStars){
             star.setSpeed(-mPlayer.getSpeed());
             star.update();
             worldWrap(star);
         }
 
-        mPlayer.Update();
-        worldWrap(mPlayer);
+        for(Enemy enemy : mEnemis){
+            enemy.setSpeed(-mPlayer.getSpeed());
+            enemy.update();
+            worldWrap(enemy);
+            if(isColliding(mPlayer, enemy)){
+                Log.d(TAG, "COLL!!");
+            }
+        }
+
+
+    }
+
+    private boolean isColliding(Player a, Enemy b){
+        return a.getBoundingBox().intersect(b.getBoundingBox());
     }
 
     private void render(){
@@ -145,10 +168,12 @@ public class GameView extends SurfaceView implements Runnable {
 
         //Draw stars
         mPaint.setColor(Color.YELLOW);
-        GameObject star;
-        for(int i = 0; i < STAR_COUNT; i++){
-            star = mStars.get(i);
+        for(GameObject star : mStars){
             mCanvas.drawPoint(star.getX(), star.getY(), mPaint);
+        }
+
+        for(Enemy enemy : mEnemis){
+            mCanvas.drawBitmap(enemy.getBitmap(), enemy.getX(), enemy.getY(), mPaint);
         }
 
         //Draw bitmap to screen

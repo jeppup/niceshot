@@ -3,6 +3,7 @@ package com.example.jesper.niceshot;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Rect;
 
 /**
  * Created by Jesper on 2017-01-23.
@@ -15,6 +16,7 @@ public class Player extends GameObject {
     private static final int MIN_SPEED = 1;
     private static final int MAX_SPEED = 20;
     private static final int GRAVITY = 12;
+    private final Rect mBoundingBox;
 
     public Player(Context context){
         super(0,0);
@@ -27,6 +29,8 @@ public class Player extends GameObject {
         int newHeight = (int)(tempBitmap.getHeight() * scalingRatio);
         int newWidth = (int)(tempBitmap.getWidth() * scalingRatio);
         mBitmap = Bitmap.createScaledBitmap(tempBitmap, newWidth, newHeight, true);
+        tempBitmap.recycle();
+        mBoundingBox = new Rect(mX, mY, mX + mBitmap.getWidth(), mY + mBitmap.getHeight());
     }
 
     @Override
@@ -91,5 +95,10 @@ public class Player extends GameObject {
         //Gravity
         mY -= mSpeed;
         mY += GRAVITY;
+    }
+
+    public Rect getBoundingBox(){
+        mBoundingBox.set(mX, mY, mX + mBitmap.getWidth(), mY + mBitmap.getHeight());
+        return mBoundingBox;
     }
 }
