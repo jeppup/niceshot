@@ -1,6 +1,7 @@
 package com.example.jesper.niceshot;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -11,6 +12,8 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Random;
 
 /**
@@ -38,57 +41,83 @@ import java.util.Random;
  */
 
 public class GameView extends SurfaceView implements Runnable {
+    public static final String TAG = "NICESHOT";
+    public static final String PREFS = "com.example.jesper.niceshot";
+    public static final String LONGEST_DIST = "longest_distance";
+
     private Thread  mGameThread;
-    volatile Boolean mIsRunning;
-    private Paint mPaint;
+    volatile boolean mIsRunning;
+    volatile boolean mShouldRestart = true;
+    private boolean mGameOver;
+
+    private GameObjectSpawner spawner;
+    private Jukebox mJukeBox;
+
     private SurfaceHolder mHolder;
     private Canvas mCanvas;
+    private Paint mPaint;
+
     private Player mPlayer;
-    private static final String TAG = "NICESHOT";
+    private int mDistanceTraveled = 0;
+    private int mLongestDistanceTraveled = 0;
+
     private final int DELAY = 1000/60;
-    private final int STAGE_HEIGHT = 720;
-    private final int STAGE_WIDTH;
-    private final int STAR_COUNT = 40;
-    private final int ENEMY_COUNT  = 3;
-    private final ArrayList<GameObject> mStars = new ArrayList<GameObject>();
-    private final ArrayList<Enemy> mEnemis = new ArrayList<Enemy>();
+    private final int SHIELD_LEVEL = 3;
+    public static final int STAGE_HEIGHT = 720;
+    public static final int STAGE_WIDTH = 1280;
+
+    HashMap<Integer, DrawableGameObject> drawableObjects = new HashMap<Integer, DrawableGameObject>();
+
+    //Persistance guys
+    private SharedPreferences mPrefs;
+    private SharedPreferences.Editor mEditor;
 
     public GameView(final Context context) {
         super(context);
         mIsRunning = false;
+        mJukeBox = new Jukebox(context);
         mPlayer = new Player(context);
         mPaint = new Paint();
         mHolder = getHolder();
-
-        double targetHeight = (double)STAGE_HEIGHT;
-        DisplayMetrics dm = context.getResources().getDisplayMetrics();
-        double scaleRatio = targetHeight / dm.heightPixels;
-        int newWidth = (int) (dm.widthPixels * scaleRatio);
-        STAGE_WIDTH = (int)(dm.widthPixels * scaleRatio);
         mHolder.setFixedSize(STAGE_WIDTH, STAGE_HEIGHT);
+        spawner = new GameObjectSpawner(context, STAGE_WIDTH, STAGE_WIDTH);
+        mPrefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        mEditor = mPrefs.edit();
+    }
 
-        Random generator = new Random();
-        for(int i = 0; i < STAR_COUNT; i++)
-        {
-            int x = generator.nextInt(STAGE_WIDTH);
-            int y = generator.nextInt(STAGE_HEIGHT);
-            mStars.add(new GameObject(x, y));
+    private void startGame(){
+        drawableObjects.clear();
+        CollisionHandler.clearAll();
+
+        for(Enemy enemy : spawner.spawnEnemies()){
+            drawableObjects.put(enemy.hashCode(), enemy);
+            CollisionHandler.addObject(enemy);
         }
-        for(int i = 0; i < ENEMY_COUNT; i++)
-        {
-            int x = STAGE_WIDTH + generator.nextInt(100);
-            int y = generator.nextInt(STAGE_HEIGHT);
-            mEnemis.add(new Enemy(context, x, y));
+
+        for (Star star : spawner.spawnStars()){
+            drawableObjects.put(star.hashCode(), star);
         }
+
+        mShouldRestart = false;
+        mGameOver = false;
+        mDistanceTraveled = 0;
+        mLongestDistanceTraveled = mPrefs.getInt(LONGEST_DIST, 0);
+
+        mPlayer.setShieldLevel(SHIELD_LEVEL);
+        mJukeBox.play(mJukeBox.START);
     }
 
     @Override
     public void run(){
         while(mIsRunning){
-            //input
+            if(mShouldRestart)
+            {
+                startGame();
+            }
             update();
             render();
             limitFps();
+            checkGameOver();
         }
     }
 
@@ -102,9 +131,13 @@ public class GameView extends SurfaceView implements Runnable {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        Log.d(TAG, "onToucheEvent thread id: " + Thread.currentThread().getId());
         switch(event.getAction() & MotionEvent.ACTION_MASK){
             case MotionEvent.ACTION_UP:
                 mPlayer.stopBoost();
+                if(mGameOver){
+                    mShouldRestart = true;
+                }
                 break;
             case MotionEvent.ACTION_DOWN:
                 mPlayer.startBoost();
@@ -129,30 +162,35 @@ public class GameView extends SurfaceView implements Runnable {
         mGameThread.start();
     }
 
+    private void checkGameOver(){
+        if(mGameOver){
+            return;
+        }
+
+        if(mPlayer.getShieldLevel() <= 0){
+            mGameOver = true;
+            if(mDistanceTraveled > mLongestDistanceTraveled){
+                mEditor.putInt(LONGEST_DIST, mDistanceTraveled);
+                mEditor.apply();
+            }
+            //Play game over sound
+        }
+    }
     private void update(){
-        mPlayer.Update();
+        mPlayer.update();
         worldWrap(mPlayer);
 
-        for(GameObject star : mStars){
-            star.setSpeed(-mPlayer.getSpeed());
-            star.update();
-            worldWrap(star);
+        for (DrawableGameObject gameObject : drawableObjects.values()){
+            gameObject.setSpeed(-mPlayer.getSpeed());
+            gameObject.update();
+            worldWrap(gameObject);
         }
 
-        for(Enemy enemy : mEnemis){
-            enemy.setSpeed(-mPlayer.getSpeed());
-            enemy.update();
-            worldWrap(enemy);
-            if(isColliding(mPlayer, enemy)){
-                Log.d(TAG, "COLL!!");
-            }
+        CollisionHandler.checkCollision(mPlayer);
+
+        if(!mGameOver){
+            mDistanceTraveled += mPlayer.getSpeed();
         }
-
-
-    }
-
-    private boolean isColliding(Player a, Enemy b){
-        return a.getBoundingBox().intersect(b.getBoundingBox());
     }
 
     private void render(){
@@ -165,30 +203,39 @@ public class GameView extends SurfaceView implements Runnable {
             return;
         }
         mCanvas.drawColor(Color.BLACK);
+        mPlayer.render(mCanvas, mPaint);
 
-        //Draw stars
-        mPaint.setColor(Color.YELLOW);
-        for(GameObject star : mStars){
-            mCanvas.drawPoint(star.getX(), star.getY(), mPaint);
+        for(DrawableGameObject go : drawableObjects.values()){
+            go.render(mCanvas, mPaint);
         }
 
-        for(Enemy enemy : mEnemis){
-            mCanvas.drawBitmap(enemy.getBitmap(), enemy.getX(), enemy.getY(), mPaint);
+        if(!mGameOver){
+            drawHUD();
+        }else {
+            drawGameOverHUD();
         }
 
-        //Draw bitmap to screen
-        mCanvas.drawBitmap(mPlayer.getBitmap(), mPlayer.getX(), mPlayer.getY(), mPaint);
         mHolder.unlockCanvasAndPost(mCanvas);
-
     }
 
+    private void drawHUD() {
+        //TODO: DISTANCE TRAVELED
+        int textHeight = 45;
+        mPaint.setColor(Color.WHITE);
+        mPaint.setTextSize(textHeight);
+        mPaint.setTextAlign(Paint.Align.LEFT);
+        mCanvas.drawText("Speed: " + mPlayer.getSpeed(), 10, textHeight, mPaint);
+        mCanvas.drawText("Shield: " + mPlayer.getShieldLevel(), STAGE_WIDTH*0.5f, textHeight, mPaint);
+    }
 
-    //core gameloop
-        //input
-        //update
-        //render
-    //pause and resume
-    //constructor
+    private void drawGameOverHUD(){
+        int textHeight = 45;
+        mPaint.setColor(Color.WHITE);
+        mPaint.setTextSize(textHeight);
+        mPaint.setTextAlign(Paint.Align.CENTER);
+        mCanvas.drawText("GAME OVER", STAGE_WIDTH*0.5f, textHeight*2, mPaint);
+        mCanvas.drawText("Tap to restart!", STAGE_WIDTH*0.5f, STAGE_HEIGHT-textHeight, mPaint);
+    }
 
     private void worldWrap(GameObject go){
         final int maxX = STAGE_WIDTH - go.getWidth();
@@ -210,23 +257,18 @@ public class GameView extends SurfaceView implements Runnable {
         }
     }
 
-    private static String getDensityName(DisplayMetrics dm) {
-        float density = dm.density;
-        if (density >= 4.0) {
-            return "xxxhigh density";
-        }
-        if (density >= 3.0) {
-            return "xxhigh density";
-        }
-        if (density >= 2.0) {
-            return "xhigh density";
-        }
-        if (density >= 1.5) {
-            return "high density";
-        }
-        if (density >= 1.0) {
-            return "medium density";
-        }
-        return "low density";
+    public void destroy(){
+        mJukeBox.destroy();
+        mJukeBox = null;
+
+        mGameThread = null;
+        mPaint = null;
+        mCanvas = null;
+        mHolder = null;
+        mPlayer = null;
+        mPrefs = null;
+        mEditor = null;
+
+
     }
 }

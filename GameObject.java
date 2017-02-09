@@ -1,5 +1,8 @@
 package com.example.jesper.niceshot;
 
+import android.graphics.Canvas;
+import android.graphics.Paint;
+
 /**
  * Created by Jesper on 2017-01-30.
  */
@@ -50,7 +53,7 @@ public class GameObject {
         mX += mSpeed;
     }
 
-    public void render(){
+    public void render(final Canvas canvas, Paint paint){
 
     }
 }

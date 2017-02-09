@@ -4,58 +4,27 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Rect;
+import android.util.Log;
 
 /**
  * Created by Jesper on 2017-01-23.
  */
 
 
-public class Player extends GameObject {
-    private Bitmap mBitmap;
+public class Player extends DrawableGameObject implements ICollidable {
     private boolean mIsBoosting;
+    private static int mShield = 3;
     private static final int MIN_SPEED = 1;
     private static final int MAX_SPEED = 20;
     private static final int GRAVITY = 12;
+    private static final int mTargetHeight = 72;
     private final Rect mBoundingBox;
 
     public Player(Context context){
-        super(0,0);
+        super(context, R.drawable.ship1, mTargetHeight);
         mIsBoosting = false;
         mSpeed = 0;
-        Bitmap tempBitmap = BitmapFactory.decodeResource(context.getResources(), R.drawable.ship1);
-
-        double targetHeight = 72;
-        double scalingRatio = targetHeight/tempBitmap.getHeight();
-        int newHeight = (int)(tempBitmap.getHeight() * scalingRatio);
-        int newWidth = (int)(tempBitmap.getWidth() * scalingRatio);
-        mBitmap = Bitmap.createScaledBitmap(tempBitmap, newWidth, newHeight, true);
-        tempBitmap.recycle();
         mBoundingBox = new Rect(mX, mY, mX + mBitmap.getWidth(), mY + mBitmap.getHeight());
-    }
-
-    @Override
-    public int getX() {
-        return mX;
-    }
-    @Override
-    public void setX(int mX) {
-        this.mX = mX;
-    }
-    @Override
-    public int getY() {
-        return mY;
-    }
-    @Override
-    public void setY(int mY) {
-        this.mY = mY;
-    }
-    @Override
-    public int getWidth(){return mBitmap.getWidth(); }
-    @Override
-    public int getHeight(){return mBitmap.getHeight(); }
-
-    public Bitmap getBitmap() {
-        return mBitmap;
     }
 
     public void startBoost(){
@@ -80,7 +49,8 @@ public class Player extends GameObject {
         return val;
     }
 
-    public void Update(){
+    @Override
+    public void update(){
         //Accelerate/Decaccelerate
         if(mIsBoosting) {
             mSpeed += 2;
@@ -97,8 +67,34 @@ public class Player extends GameObject {
         mY += GRAVITY;
     }
 
+    public void onCollision(){
+        mShield--;
+        if(mShield <= 0){
+            Log.d("PLAYER", "You lost son");
+        }
+    }
+
     public Rect getBoundingBox(){
         mBoundingBox.set(mX, mY, mX + mBitmap.getWidth(), mY + mBitmap.getHeight());
         return mBoundingBox;
     }
+
+    @Override
+    public Boolean checkCollisson(ICollidable objectToCheck) {
+        return getCollisionBoundaries().intersect(objectToCheck.getCollisionBoundaries());
+    }
+
+    @Override
+    public Rect getCollisionBoundaries() {
+        mBoundingBox.set(mX, mY, mX + mBitmap.getWidth(), mY + mBitmap.getHeight());
+        return mBoundingBox;
+    }
+
+    @Override
+    public void collisionHappend() {
+        setShieldLevel(mShield - 1);
+    }
+
+    public int getShieldLevel(){ return mShield; }
+    public void setShieldLevel(int shieldLevel){ mShield = shieldLevel; }
 }

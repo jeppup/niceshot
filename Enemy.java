@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Rect;
+import android.util.Log;
 
 import java.util.Random;
 
@@ -11,55 +12,29 @@ import java.util.Random;
  * Created by Jesper on 2017-01-30.
  */
 
-public class Enemy extends GameObject {
-    private Bitmap mBitmap;
+public class Enemy extends DrawableGameObject implements ICollidable {
     private Rect mBoundingBox;
-    private boolean mIsBoosting;
     private int mBaseSpeed;
+    private static final int TARGET_HEIGHT = 72;
     private static final int MIN_SPEED = 1;
     private static final int MAX_SPEED = 20;
 
-    public Enemy(Context context, int x, int y){
-        super(x,y);
-        mIsBoosting = false;
-        mSpeed = -15;
-        Bitmap tempBitmap = BitmapFactory.decodeResource(context.getResources(), R.drawable.ship2);
+    public Enemy(Context context){
+        super(context, getRandomResourceId(), TARGET_HEIGHT);
+        respawn();
+    }
 
-        double targetHeight = 72;
-        double scalingRatio = targetHeight/tempBitmap.getHeight();
-        int newHeight = (int)(tempBitmap.getHeight() * scalingRatio);
-        int newWidth = (int)(tempBitmap.getWidth() * scalingRatio);
-        mBitmap = Bitmap.createScaledBitmap(tempBitmap, newWidth, newHeight, true);
-        tempBitmap.recycle();
-        mBoundingBox = new Rect(mX, mY, mX + mBitmap.getWidth(), mY + mBitmap.getHeight());
-
+    public void respawn(){
         Random r = new Random();
-        mBaseSpeed = r.nextInt(MAX_SPEED);
+        mX = GameView.STAGE_WIDTH + r.nextInt(100);
+        mY = r.nextInt(GameView.STAGE_HEIGHT);
+        mSpeed = -15;
+        mBaseSpeed = -r.nextInt(MAX_SPEED);
+        mBoundingBox = new Rect(mX, mY, mX + mBitmap.getWidth(), mY + mBitmap.getHeight());
     }
 
-    @Override
-    public int getX() {
-        return mX;
-    }
-    @Override
-    public void setX(int mX) {
-        this.mX = mX;
-    }
-    @Override
-    public int getY() {
-        return mY;
-    }
-    @Override
-    public void setY(int mY) {
-        this.mY = mY;
-    }
-    @Override
-    public int getWidth(){return mBitmap.getWidth(); }
-    @Override
-    public int getHeight(){return mBitmap.getHeight(); }
-
-    public Bitmap getBitmap() {
-        return mBitmap;
+    public void onCollision(){
+        respawn();
     }
 
     public void update(){
@@ -70,5 +45,43 @@ public class Enemy extends GameObject {
     public Rect getBoundingBox(){
         mBoundingBox.set(mX, mY, mX + mBitmap.getWidth(), mY + mBitmap.getHeight());
         return mBoundingBox;
+    }
+
+    @Override
+    public Boolean checkCollisson(ICollidable objectToCheck) {
+        return this.getCollisionBoundaries().intersect(objectToCheck.getCollisionBoundaries());
+    }
+
+    @Override
+    public Rect getCollisionBoundaries() {
+        mBoundingBox.set(mX, mY, mX + mBitmap.getWidth(), mY + mBitmap.getHeight());
+        return mBoundingBox;
+    }
+
+    @Override
+    public void collisionHappend() {
+        respawn();
+    }
+
+    private static int getRandomResourceId(){
+        Random r = new Random();
+        int shipIndex = r.nextInt(7);
+
+        switch (shipIndex){
+            case 0:
+                return R.drawable.ship2;
+            case 1:
+                return R.drawable.ship3;
+            case 2:
+                return R.drawable.ship4;
+            case 4:
+                return R.drawable.ship5;
+            case 5:
+                return R.drawable.ship6;
+            default:
+                return R.drawable.ship7;
+        }
+
+
     }
 }

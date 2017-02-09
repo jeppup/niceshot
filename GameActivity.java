@@ -20,6 +20,12 @@ public class GameActivity extends Activity {
     }
 
     @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mGame.destroy();
+    }
+
+    @Override
     protected void onPause() {
         super.onPause();
         mGame.pause();
