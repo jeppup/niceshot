@@ -18,26 +18,7 @@ import java.util.Random;
 
 /**
  * Created by Jesper on 2017-01-23.
- *Game art source: http://opengameart.org/content/space-ships-side-scroller
- * TO DO:
- * Stars
- *      Update to scroll
- *      needs to match player velocity
- *      need recycling
- *
- * Enemy
- *      render() / update()
- *      getHitBox()
- *
- * update()
- *      checkCollissions()
- *      end game / restart
- *
- * Jukebox
- *      loading and playing sound effects
- *
- *  Highscores / previous results
- *        saving and lodaing persistent data
+ * Game art source: http://opengameart.org/content/space-ships-side-scroller
  */
 
 public class GameView extends SurfaceView implements Runnable {
@@ -50,6 +31,7 @@ public class GameView extends SurfaceView implements Runnable {
     volatile boolean mShouldRestart = true;
     private boolean mGameOver;
 
+    HashMap<Integer, DrawableGameObject> drawableObjects = new HashMap<Integer, DrawableGameObject>();
     private GameObjectSpawner spawner;
     private Jukebox mJukeBox;
 
@@ -66,7 +48,6 @@ public class GameView extends SurfaceView implements Runnable {
     public static final int STAGE_HEIGHT = 720;
     public static final int STAGE_WIDTH = 1280;
 
-    HashMap<Integer, DrawableGameObject> drawableObjects = new HashMap<Integer, DrawableGameObject>();
 
     //Persistance guys
     private SharedPreferences mPrefs;

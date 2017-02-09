@@ -12,7 +12,8 @@ import android.graphics.Paint;
 
 public class DrawableGameObject extends GameObject {
     protected Bitmap mBitmap;
-    public DrawableGameObject(Context context, int bitmapResourceId, double targetHeight){
+    public DrawableGameObject(Context context, int bitmapResourceId, int heightResourceId){
+        double targetHeight = context.getResources().getInteger(heightResourceId);
         initializeBitmap(context, bitmapResourceId, targetHeight);
     }
 

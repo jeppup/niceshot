@@ -1,6 +1,7 @@
 package com.example.jesper.niceshot;
 
 import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Rect;
@@ -15,40 +16,35 @@ import java.util.Random;
 public class Enemy extends DrawableGameObject implements ICollidable {
     private Rect mBoundingBox;
     private int mBaseSpeed;
-    private static final int TARGET_HEIGHT = 72;
-    private static final int MIN_SPEED = 1;
-    private static final int MAX_SPEED = 20;
+    private final int MAX_SPEED;
+    private final int MIN_SPEED;
+    private final int MAX_SPAWN_DISTANCE;
 
     public Enemy(Context context){
-        super(context, getRandomResourceId(), TARGET_HEIGHT);
+        super(context, getRandomResourceId(), R.integer.ENEMY_MODEL_HEIGHT);
+        Resources res = context.getResources();
+        MAX_SPEED = res.getInteger(R.integer.ENEMY_SPEED_RANGE);
+        MIN_SPEED = res.getInteger(R.integer.ENEMY_MIN_SPEED);
+        MAX_SPAWN_DISTANCE = res.getInteger(R.integer.ENEMY_MAX_SPAWN_DISTANCE);
         respawn();
     }
 
     public void respawn(){
         Random r = new Random();
-        mX = GameView.STAGE_WIDTH + r.nextInt(100);
+        mX = GameView.STAGE_WIDTH + r.nextInt(MAX_SPAWN_DISTANCE);
         mY = r.nextInt(GameView.STAGE_HEIGHT);
-        mSpeed = -15;
-        mBaseSpeed = -r.nextInt(MAX_SPEED);
+        mBaseSpeed = -(MIN_SPEED + r.nextInt(MAX_SPEED));
         mBoundingBox = new Rect(mX, mY, mX + mBitmap.getWidth(), mY + mBitmap.getHeight());
     }
 
-    public void onCollision(){
-        respawn();
-    }
-
-    public void update(){
-        super.update();
-        mX -= mBaseSpeed;
-    }
-
-    public Rect getBoundingBox(){
-        mBoundingBox.set(mX, mY, mX + mBitmap.getWidth(), mY + mBitmap.getHeight());
-        return mBoundingBox;
+    @Override
+    public void setSpeed(int speed) {
+        super.setSpeed(speed);
+        mSpeed += mBaseSpeed;
     }
 
     @Override
-    public Boolean checkCollisson(ICollidable objectToCheck) {
+    public Boolean checkCollision(ICollidable objectToCheck) {
         return this.getCollisionBoundaries().intersect(objectToCheck.getCollisionBoundaries());
     }
 
@@ -59,7 +55,7 @@ public class Enemy extends DrawableGameObject implements ICollidable {
     }
 
     @Override
-    public void collisionHappend() {
+    public void onCollision() {
         respawn();
     }
 

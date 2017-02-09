@@ -7,8 +7,8 @@ import android.graphics.Rect;
  */
 
 public interface ICollidable {
-    Boolean checkCollisson(ICollidable objectToCheck);
+    Boolean checkCollision(ICollidable objectToCheck);
     Rect getCollisionBoundaries();
-    void collisionHappend();
+    void onCollision();
 
 }

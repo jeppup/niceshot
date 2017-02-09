@@ -19,9 +19,9 @@ public class CollisionHandler {
 
     public static void checkCollision(ICollidable objectToCheck){
         for(ICollidable obj : collidableObjects.values()){
-            if(objectToCheck.checkCollisson(obj)){
-                objectToCheck.collisionHappend();
-                obj.collisionHappend();
+            if(objectToCheck.checkCollision(obj)){
+                objectToCheck.onCollision();
+                obj.onCollision();
             }
         }
     }

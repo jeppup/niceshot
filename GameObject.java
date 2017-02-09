@@ -8,8 +8,6 @@ import android.graphics.Paint;
  */
 
 public class GameObject {
-    //update()
-
     public GameObject(int x, int y) {
         this.mX = x;
         this.mY = y;

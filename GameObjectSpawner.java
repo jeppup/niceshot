@@ -1,6 +1,7 @@
 package com.example.jesper.niceshot;
 
 import android.content.Context;
+import android.content.res.Resources;
 
 import java.util.ArrayList;
 import java.util.Random;
@@ -14,11 +15,19 @@ public class GameObjectSpawner {
     private int mStageHeight;
     private int mStageWidth;
 
-    private final static int STAR_COUNT = 40;
-    private final static int ENEMY_COUNT = 3;
+    private final int STAR_COUNT;
+    private final int ENEMY_COUNT;
+    private final int STAR_MIN_HEIGHT;
+    private final int STAR_HEIGHT_RANGE;
 
     public GameObjectSpawner(Context context, int stageHeight, int stageWidth){
         mContext = context;
+        Resources res = context.getResources();
+        STAR_COUNT = res.getInteger(R.integer.SPAWNER_STAR_COUNT);
+        ENEMY_COUNT = res.getInteger(R.integer.SPAWNER_ENEMY_COUNT);
+        STAR_MIN_HEIGHT = res.getInteger(R.integer.STAR_MIN_HEIGHT);
+        STAR_HEIGHT_RANGE = res.getInteger(R.integer.STAR_HEIGHT_VARIATION_RANGE);
+
         mStageHeight = stageHeight;
         mStageWidth = stageWidth;
     }
@@ -40,7 +49,7 @@ public class GameObjectSpawner {
         {
             int x = r.nextInt(mStageWidth);
             int y = r.nextInt(mStageHeight);
-            double targetHeight = 10 + r.nextInt(20);
+            double targetHeight = STAR_MIN_HEIGHT + r.nextInt(STAR_HEIGHT_RANGE);
             stars.add(new Star(mContext, targetHeight, x, y));
         }
 
