@@ -19,7 +19,7 @@ import java.io.IOException;
 public class Jukebox {
     private SoundPool mSoundPool;
     private final int MAX_STREAMS = 5;
-    public static int BUMP = 0;
+    public static int CRASH = 0;
     public static int START = 0;
 
     public Jukebox(Context context){
@@ -48,14 +48,13 @@ public class Jukebox {
         try{
             AssetManager assetManager = context.getAssets();
             AssetFileDescriptor descriptor;
-            descriptor = assetManager.openFd("bump.ogg");
-            BUMP = mSoundPool.load(descriptor, 0);
+            descriptor = assetManager.openFd("explosion.ogg");
+            CRASH = mSoundPool.load(descriptor, 0);
             descriptor = assetManager.openFd("start.ogg");
             START = mSoundPool.load(descriptor, 0);
         }catch (IOException ex){
             Log.e(GameView.TAG, ex.getMessage());
         }
-
     }
 
     private SoundPool createSoundPool(){
